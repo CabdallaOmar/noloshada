@@ -621,6 +621,25 @@
   if (!state.settings.name && session.name) { state.settings.name = session.name; save(); }
   if (state.timer.running) { state.timer.running = false; save(); }
   render();
+  async function refreshAccountData() {
+    if (previewMode || !session?.token || store.pending()) return;
+    try {
+      await window.NoloshaCloud.validSession();
+      const result = await window.NoloshaCloud.loadData();
+      if (!result.data || store.pending()) return;
+      const before = JSON.stringify(store.get());
+      store.load(result.data);
+      state = store.get();
+      if (JSON.stringify(state) !== before) render();
+      document.getElementById('storage-status').textContent = 'Xogta account-ka cloud-ka waa la kaydiyey.';
+    } catch (error) {
+      console.warn('Could not refresh account data from server.', error);
+    }
+  }
+  window.addEventListener('focus', refreshAccountData);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAccountData();
+  });
   function tickClock() { const clock = document.getElementById('live-clock'); if (clock) clock.textContent = new Date().toLocaleTimeString(currentLocale(), { hour: '2-digit', minute: '2-digit', hour12: state.settings.timeFormat === '12h' }); }
   tickClock(); setInterval(tickClock, 15000);
 })();

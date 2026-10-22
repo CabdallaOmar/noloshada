@@ -165,3 +165,11 @@ body.light-theme .local-note,body.light-theme .form-hint{color:#626875}
 .show-password[aria-pressed="true"]::before{border-radius:75% 15%;transform:rotate(45deg)}
 .verification-input.otp-complete::after{content:"\2714";width:38px;height:38px;border-radius:50%;background:#19a765;color:#fff;font:700 24px/1 var(--font);animation:otp-check-appear .34s cubic-bezier(.2,.8,.25,1.3) .57s forwards,otp-check-spin .8s linear .57s 1;}
 @keyframes otp-check-spin{to{rotate:360deg}}
+
+/* Clear eye / eye-off password visibility icon */
+.show-password{width:30px;height:30px;color:#788397}
+.show-password::before{content:"";position:absolute;width:17px;height:12px;border:1.7px solid currentColor;border-radius:75% 15%;transform:rotate(45deg);background:transparent}
+.show-password::after{content:"";position:absolute;width:5px;height:5px;border:1.6px solid currentColor;border-radius:50%;background:currentColor}
+.show-password[aria-pressed="true"]::before{border-color:var(--accent)}
+.show-password[aria-pressed="true"]::after{background:var(--accent);border-color:var(--accent)}
+.show-password[aria-pressed="true"]{background:linear-gradient(140deg,transparent 47%,currentColor 48%,currentColor 53%,transparent 54%);color:var(--accent)}

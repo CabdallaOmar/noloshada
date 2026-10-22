@@ -178,3 +178,8 @@ body.light-theme .local-note,body.light-theme .form-hint{color:#626875}
 .show-password::before,.show-password::after{content:none!important}
 .show-password{background-image:url("eye-password.avif");background-repeat:no-repeat;background-position:center;background-size:22px 22px}
 .show-password[aria-pressed="true"]{background-image:url("eye-password.avif");background-size:22px 22px}
+
+/* Revert the supplied bitmap icon; keep the existing Show/Hide text behavior. */
+.show-password{background-image:none!important}
+.show-password::before,.show-password::after{content:none!important}
+.show-password{font-size:8px!important;width:auto;height:26px;padding:5px 0!important}

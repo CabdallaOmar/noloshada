@@ -20,7 +20,7 @@ jobs:
           test -n "$SMTP_USER" || { echo 'Missing SMTP_USER Actions secret.'; exit 1; }
           test -n "$SMTP_PASS" || { echo 'Missing SMTP_PASS Actions secret.'; exit 1; }
 
-      - name: Enable Gmail SMTP for Supabase Auth
+      - name: Configure Gmail SMTP and eight-digit signup OTP
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -39,6 +39,5 @@ jobs:
             --request PATCH "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
             --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             --header 'Content-Type: application/json' \
-            --data "$payload" \
-            --output /dev/null
-          echo 'Supabase Auth SMTP configured; email confirmation remains required.'
+            --data "$payload"
+          echo 'Supabase SMTP configured and signup OTP length set to eight.'

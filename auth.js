@@ -10,7 +10,7 @@
   const resendButton = document.getElementById('resend-code');
   const verificationInput = document.getElementById('verification-code');
   verificationInput?.addEventListener('input', () => {
-    const clean = verificationInput.value.replace(/\D/g, '').slice(0, 6);
+    const clean = verificationInput.value.replace(/\D/g, '').slice(0, 8);
     if (verificationInput.value !== clean) verificationInput.value = clean;
     const wrap = verificationInput.closest('.verification-input');
     if (!wrap) return;

@@ -173,3 +173,8 @@ body.light-theme .local-note,body.light-theme .form-hint{color:#626875}
 .show-password[aria-pressed="true"]::before{border-color:var(--accent)}
 .show-password[aria-pressed="true"]::after{background:var(--accent);border-color:var(--accent)}
 .show-password[aria-pressed="true"]{background:linear-gradient(140deg,transparent 47%,currentColor 48%,currentColor 53%,transparent 54%);color:var(--accent)}
+
+/* Use the supplied eye symbol for password visibility. */
+.show-password::before,.show-password::after{content:none!important}
+.show-password{background-image:url("eye-password.avif");background-repeat:no-repeat;background-position:center;background-size:22px 22px}
+.show-password[aria-pressed="true"]{background-image:url("eye-password.avif");background-size:22px 22px}

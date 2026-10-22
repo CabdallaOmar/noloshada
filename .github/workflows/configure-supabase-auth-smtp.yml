@@ -34,7 +34,7 @@ jobs:
             --arg pass "$SMTP_PASS" \
             --arg subject "$confirmation_subject" \
             --arg template "$confirmation_content" \
-            '{external_email_enabled:true, mailer_autoconfirm:false, smtp_admin_email:$user, smtp_host:"smtp.gmail.com", smtp_port:465, smtp_user:$user, smtp_pass:($pass | gsub("\\s";"")), smtp_sender_name:"Noloshaada", mailer_subjects_confirmation:$subject, mailer_templates_confirmation_content:$template}')
+            '{external_email_enabled:true, mailer_autoconfirm:false, smtp_admin_email:$user, smtp_host:"smtp.gmail.com", smtp_port:"465", smtp_user:$user, smtp_pass:($pass | gsub("\\s";"")), smtp_sender_name:"Noloshaada", mailer_subjects_confirmation:$subject, mailer_templates_confirmation_content:$template}')
           curl --fail-with-body --silent --show-error \
             --request PATCH "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
             --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \

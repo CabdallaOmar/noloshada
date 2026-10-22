@@ -102,6 +102,7 @@
     const input = button.parentElement.querySelector('input');
     if (!input) return;
     input.type = input.type === 'password' ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(input.type === 'text'));
     button.textContent = english() ? (input.type === 'text' ? 'Hide' : 'Show') : (input.type === 'text' ? 'Qari' : 'Muuji');
   }));
   form.addEventListener('submit', async event => {

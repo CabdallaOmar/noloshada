@@ -9,15 +9,46 @@
   const verificationMessage = document.getElementById('verification-message');
   const resendButton = document.getElementById('resend-code');
   const verificationInput = document.getElementById('verification-code');
-  verificationInput?.addEventListener('input', () => {
-    const clean = verificationInput.value.replace(/\D/g, '').slice(0, 8);
-    if (verificationInput.value !== clean) verificationInput.value = clean;
-    const wrap = verificationInput.closest('.verification-input');
+  const verificationDigits = [...document.querySelectorAll('.verification-digit')];
+  function syncVerificationCode() {
+    const code = verificationDigits.map(input => input.value).join('');
+    if (verificationInput) verificationInput.value = code;
+    const wrap = verificationDigits[0]?.closest('.verification-input');
     if (!wrap) return;
     wrap.classList.remove('otp-typing', 'otp-complete');
-    if (!clean) return;
+    if (!code) return;
     void wrap.offsetWidth;
-    wrap.classList.add(clean.length === 6 ? 'otp-complete' : 'otp-typing');
+    wrap.classList.add(code.length === 8 ? 'otp-complete' : 'otp-typing');
+  }
+  verificationDigits.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/\D/g, '');
+      if (digits.length > 1) {
+        digits.slice(0, verificationDigits.length - index).split('').forEach((digit, offset) => {
+          verificationDigits[index + offset].value = digit;
+        });
+        verificationDigits[Math.min(index + digits.length, verificationDigits.length - 1)].focus();
+      } else {
+        input.value = digits;
+        if (digits && index < verificationDigits.length - 1) verificationDigits[index + 1].focus();
+      }
+      syncVerificationCode();
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Backspace' && !input.value && index > 0) verificationDigits[index - 1].focus();
+      if (event.key === 'ArrowLeft' && index > 0) { event.preventDefault(); verificationDigits[index - 1].focus(); }
+      if (event.key === 'ArrowRight' && index < verificationDigits.length - 1) { event.preventDefault(); verificationDigits[index + 1].focus(); }
+    });
+    input.addEventListener('paste', event => {
+      const digits = event.clipboardData?.getData('text').replace(/\D/g, '') || '';
+      if (!digits) return;
+      event.preventDefault();
+      digits.slice(0, verificationDigits.length - index).split('').forEach((digit, offset) => {
+        verificationDigits[index + offset].value = digit;
+      });
+      verificationDigits[Math.min(index + digits.length, verificationDigits.length - 1)].focus();
+      syncVerificationCode();
+    });
   });
   let pendingRegistration = null;
   let resendInterval = null;
@@ -47,7 +78,7 @@
     verificationPanel.hidden = false;
     const target = document.getElementById('verification-email'); if (target) target.textContent = email;
     sayVerification('');
-    verificationForm?.elements.code.focus();
+    verificationDigits[0]?.focus();
   }
   function showRegistration() {
     if (verificationPanel) verificationPanel.hidden = true;
@@ -108,7 +139,7 @@
       if (!verificationForm.reportValidity()) return;
       if (!pendingRegistration?.email) { sayVerification(english() ? 'Registration details expired. Start again to request a new code.' : 'Xogtii diiwaangelintu way dhammaatay. Dib u bilow si koodh cusub loo codsado.'); showRegistration(); return; }
       const button = verificationForm.querySelector('[type="submit"]'); button.disabled = true;
-      try { startSession(await window.NoloshaCloud.verifyCode(pendingRegistration.email, verificationForm.elements.code.value.trim())); }
+      try { startSession(await window.NoloshaCloud.verifyCode(pendingRegistration.email, verificationInput.value.trim())); }
       catch (error) {
         const invalidCode = error.status === 400 || error.status === 401 || error.status === 422;
         sayVerification(invalidCode ? (english() ? 'That verification code is incorrect or has expired. Check it or start registration again for a new code.' : 'Koodhka xaqiijintu waa khaldan yahay ama wuu dhacay. Hubi koodhka ama dib u bilow diiwaangelinta si koodh cusub loo helo.') : errorText(error));
@@ -121,6 +152,6 @@
       try { await window.NoloshaCloud.resendSignup(pendingRegistration.email); cooldown(); sayVerification(english() ? 'Supabase accepted the resend request. Check your inbox and spam folder.' : 'Supabase wuu aqbalay codsiga dib-u-dirista. Ka eeg inbox-ka iyo spam-ka.', 'success'); }
       catch (error) { if (error.status === 429) cooldown(error.retryAfter || (emailRateLimited(error) ? 3600 : 60)); else resendButton.disabled = false; sayVerification(errorText(error)); }
     });
-    document.getElementById('change-email')?.addEventListener('click', () => { clearInterval(resendInterval); pendingRegistration = null; sessionStorage.removeItem('nolosha-pending-registration-v1'); verificationForm.reset(); showRegistration(); });
+    document.getElementById('change-email')?.addEventListener('click', () => { clearInterval(resendInterval); pendingRegistration = null; sessionStorage.removeItem('nolosha-pending-registration-v1'); verificationForm.reset(); syncVerificationCode(); showRegistration(); });
   }
 })();

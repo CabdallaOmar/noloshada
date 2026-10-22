@@ -74,7 +74,11 @@ body,.auth-layout,.auth-aside,.auth-main{background:#000;background-image:none}
 .verification-copy strong{color:#202431}
 .auth-box .verification-card form>label{margin-top:8px}
 .auth-box .verification-card .input-wrap{margin-bottom:8px}
-.verification-input input{text-align:center;letter-spacing:8px;font-variant-numeric:tabular-nums}
+.verification-input{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;padding:7px;margin-bottom:8px;height:auto;min-height:52px}
+.verification-input .verification-digit{width:100%;height:36px;min-width:0;padding:0;border:1px solid #d6dce5;border-radius:7px;background:#fff;color:#202431;text-align:center;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0}
+.verification-input .verification-digit:focus{outline:2px solid #63a8ff;outline-offset:1px}
+.verification-input .verification-digit:invalid:not(:placeholder-shown){box-shadow:none}
+.verification-input #verification-code{display:none}
 .verification-actions{display:flex;justify-content:space-between;gap:12px;margin-top:9px}
 .verification-actions button{border:0;padding:2px 0;background:transparent;color:#2877c8;font-size:8px;font-weight:600;cursor:pointer}
 .verification-actions button:disabled{color:#8b94a3;cursor:wait}
@@ -94,7 +98,7 @@ body,.auth-layout,.auth-aside,.auth-main{background:#000;background-image:none}
 @media(max-width:780px){.auth-main{padding:18px 22px}.mobile-brand{margin-bottom:32px}.auth-box{max-width:390px}}
 
 
-/* Subtle feedback while entering the six-digit verification code. */
+/* Subtle feedback while entering the eight-digit verification code. */
 .verification-input.otp-typing {
   border-color: #63a8ff;
   animation: otp-type-pulse .28s ease-out;
@@ -115,3 +119,4 @@ body,.auth-layout,.auth-aside,.auth-main{background:#000;background-image:none}
 @media (prefers-reduced-motion: reduce) {
   .verification-input.otp-typing, .verification-input.otp-complete { animation: none; }
 }
+@media(max-width:420px){.verification-input{gap:4px;padding:6px}.verification-input .verification-digit{height:32px;font-size:14px}}

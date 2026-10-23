@@ -497,7 +497,7 @@ body.app-page[data-active-view="settings"]{--accent:#b5bac4;--accent-2:#d2d5dc;-
 }
 
 /* Open focus timer button: black with white text in dark mode, inverse in light mode. */
-.app-page #app-content .study-focus-link{background:#000!important;color:#fff!important;border-color:#555!important}
-.app-page #app-content .study-focus-link:hover{background:#000!important;color:#fff!important;border-color:#777!important}
-.app-page.light-theme #app-content .study-focus-link{background:#fff!important;color:#000!important;border-color:#cbd2dc!important}
-.app-page.light-theme #app-content .study-focus-link:hover{background:#fff!important;color:#000!important;border-color:#aeb7c3!important}
+.app-page[data-active-view="study"] #app-content .study-focus-link{background:#000!important;color:#fff!important;border-color:#555!important}
+.app-page[data-active-view="study"] #app-content .study-focus-link:hover{background:#000!important;color:#fff!important;border-color:#777!important}
+.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link{background:#fff!important;color:#000!important;border-color:#cbd2dc!important}
+.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link:hover{background:#fff!important;color:#000!important;border-color:#aeb7c3!important}

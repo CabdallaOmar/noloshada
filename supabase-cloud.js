@@ -54,14 +54,31 @@
     if (Number(session.expiresAt || 0) < Date.now() / 1000 + 90) session = await refresh(session);
     return session;
   }
-  async function loadData() {
+  async function loadData(options = {}) {
     const session = await validSession();
-    const rows = await request(`/rest/v1/nolosha_account_data?select=data&user_id=eq.${encodeURIComponent(session.userId)}`, { token: session.token });
-    return { data: Array.isArray(rows) && rows.length ? rows[0].data : null };
+    const rows = await request(`/rest/v1/nolosha_account_data?select=data,updated_at&user_id=eq.${encodeURIComponent(session.userId)}`, { token: session.token, keepalive: options.keepalive === true });
+    return { data: Array.isArray(rows) && rows.length ? rows[0].data : null, updatedAt: Array.isArray(rows) && rows.length ? rows[0].updated_at : '' };
   }
-  async function saveData(data) {
+  async function saveData(data, options = {}) {
     const session = await validSession();
-    await request('/rest/v1/nolosha_account_data?on_conflict=user_id', { method: 'POST', token: session.token, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: session.userId, data, updated_at: new Date().toISOString() } });
+    const previousUpdatedAt = Date.parse(options.expectedUpdatedAt || '');
+    const nextUpdatedAt = Math.max(Date.now(), Number.isFinite(previousUpdatedAt) ? previousUpdatedAt + 1 : 0);
+    const body = { user_id: session.userId, data, updated_at: new Date(nextUpdatedAt).toISOString() };
+    let path = '/rest/v1/nolosha_account_data?on_conflict=user_id';
+    let method = 'POST';
+    let prefer = 'resolution=merge-duplicates,return=minimal';
+    if (options.insertOnly) {
+      path = '/rest/v1/nolosha_account_data';
+      prefer = 'return=representation';
+    } else if (options.expectedUpdatedAt) {
+      path = `/rest/v1/nolosha_account_data?user_id=eq.${encodeURIComponent(session.userId)}&updated_at=eq.${encodeURIComponent(options.expectedUpdatedAt)}`;
+      method = 'PATCH';
+      prefer = 'return=representation';
+    }
+    const result = await request(path, { method, token: session.token, keepalive: options.keepalive === true, headers: { Prefer: prefer }, body });
+    if ((options.insertOnly || options.expectedUpdatedAt) && (!Array.isArray(result) || !result.length)) {
+      throw Object.assign(new Error('Cloud-ku xog ayuu beddelay intii kaydintu socotay.'), { status: 409, code: 'sync_conflict' });
+    }
     return { ok: true };
   }
   window.NoloshaCloud = { signUp, resendSignup, verifyCode, signIn, recover, loadData, saveData, validSession };

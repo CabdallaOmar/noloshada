@@ -16,23 +16,15 @@
       const remoteData = result.data;
       const pending = store.pending();
       const legacyData = store.legacy();
-      if (pending) {
-        store.load(pending.data);
-        await window.NoloshaCloud.saveData(pending.data);
-        store.clearPending(pending.raw, session);
+      let initialData = remoteData;
+      if (legacyData) initialData = store.mergeData(initialData, legacyData, result.updatedAt);
+      if (pending) initialData = store.mergeData(initialData, pending.data, result.updatedAt, pending.savedAt);
+      if (pending || legacyData || !remoteData) {
+        store.load(initialData || store.get());
+        await store.flush();
         store.clearLegacy();
       }
-      else if (remoteData) { store.load(remoteData); store.clearLegacy(); }
-      else if (legacyData) {
-        const initialData = legacyData;
-        await window.NoloshaCloud.saveData(initialData);
-        store.load(initialData);
-      }
-      else {
-        const initialData = remoteData || legacyData || store.get();
-        await window.NoloshaCloud.saveData(initialData);
-        store.load(initialData);
-      }
+      else { store.load(remoteData, result.updatedAt); store.clearLegacy(); }
     } catch (error) {
       accountLoadError = error;
       if (error.status === 401) {
@@ -41,7 +33,8 @@
         return;
       }
       const pending = store.pending();
-      if (pending) { store.load(pending.data); recoveredLocalCopy = true; }
+      const legacyData = store.legacy();
+      if (pending || legacyData) { store.load(store.mergeData(legacyData, pending?.data, 0, pending?.savedAt)); recoveredLocalCopy = true; }
       else console.warn('Could not load account data from server.', error);
     }
   }
@@ -59,6 +52,7 @@
   const taskForm = document.getElementById('task-form');
   const categorySelect = document.getElementById('task-category');
   let view = 'overview';
+  let habitHistoryWeeks = 0;
   let plannerDate = todayISO();
   let monthCursor = new Date(); monthCursor.setDate(1);
   let selectedCalendarDate = todayISO();
@@ -294,18 +288,21 @@
 
   function streak(habit) { const days = new Set(habit.days || []); let cursor = parseDate(todayISO()); if (!days.has(todayISO())) cursor.setDate(cursor.getDate() - 1); let count = 0; while (days.has(todayISO(cursor))) { count++; cursor.setDate(cursor.getDate() - 1); } return count; }
   function renderHabits() {
-    const dates = Array.from({ length: 7 }, (_, i) => isoForOffset(todayISO(), i - 6));
+    const dates = Array.from({ length: 7 }, (_, i) => isoForOffset(todayISO(), i - 6 - habitHistoryWeeks * 7));
     const habits = state.habits || [];
-    const cards = habits.length ? habits.map(h => { const days = h.days || []; const doneToday = days.includes(todayISO()); return `<article class="habit-card"><div class="habit-top"><div class="subject-top" style="justify-content:flex-start"><span class="habit-icon">${esc(h.icon || '✳')}</span><div><h3 style="margin:0 0 3px">${esc(h.name)}</h3><p>${doneToday ? 'Maanta waa la qabtay' : 'Caado maalinle ah'}</p></div></div><button class="mini-action" data-action="habit-delete" data-id="${esc(h.id)}" title="Tirtir">×</button></div><div class="habit-week">${dates.map(d => `<button class="habit-day ${days.includes(d) ? 'done' : ''} ${d === todayISO() ? 'today' : ''}" data-action="habit-toggle" data-id="${esc(h.id)}" data-date="${d}" title="${dateLabel(d)}">${days.includes(d) ? '✓' : parseDate(d).getDate()}</button>`).join('')}</div><div class="habit-foot"><span>7-dii maalmood ee u dambeeyey</span><span class="habit-streak">🔥 ${streak(h)} maalmood</span></div></article>`; }).join('') : empty('Caado cusub ku dar', 'Caadooyinka yaryar ee joogtada ahi waxay keenaan isbeddel weyn.', '✳');
-    return `${pageHead('JOOGTEYN & CAADO', 'Caadooyinkaaga', 'Maalin kasta calaamadee caadooyinka aad qabatay.', `<span class="date-pill">${habits.filter(h => (h.days || []).includes(todayISO())).length} / ${habits.length} maanta</span>`)}<div class="toolbar"><form id="habit-form" class="toolbar" style="margin:0;width:100%"><input class="field" name="habit" required maxlength="48" placeholder="Caado cusub, tusaale: Socod 20 daqiiqo" style="flex:1;min-width:180px"><button class="button button-primary button-small" type="submit">＋ Ku dar caado</button></form></div><div class="habit-grid">${cards}</div>`;
+    const periodLabel = habitHistoryWeeks === 0
+      ? '7-dii maalmood ee u dambeeyey'
+      : `${dateLabel(dates[0], { month: 'short', day: 'numeric' })} – ${dateLabel(dates[6], { month: 'short', day: 'numeric' })}`;
+    const cards = habits.length ? habits.map(h => { const days = h.days || []; const active = h.active === true; return `<article class="habit-card"><div class="habit-top"><div class="subject-top" style="justify-content:flex-start"><span class="habit-icon">${esc(h.icon || '✳')}</span><div><h3 style="margin:0 0 3px">${esc(h.name)}</h3><button type="button" class="subtle-link habit-active-toggle" data-action="habit-active-toggle" data-id="${esc(h.id)}" aria-pressed="${active ? 'true' : 'false'}">${active ? '✓ Firfircoon' : '○ Damsan'}</button></div></div><button class="mini-action" data-action="habit-delete" data-id="${esc(h.id)}" title="Tirtir">×</button></div><div class="habit-week">${dates.map(d => `<button class="habit-day ${days.includes(d) ? 'done' : ''} ${d === todayISO() ? 'today' : ''}" data-action="habit-toggle" data-id="${esc(h.id)}" data-date="${d}" title="${dateLabel(d)}">${days.includes(d) ? '✓' : parseDate(d).getDate()}</button>`).join('')}</div><div class="habit-foot"><span>${periodLabel}</span><span class="habit-streak">🔥 ${streak(h)} maalmood</span></div></article>`; }).join('') : empty('Caado cusub ku dar', 'Caadooyinka yaryar ee joogtada ahi waxay keenaan isbeddel weyn.', '✳');
+    const historyControls = `<div class="toolbar" style="justify-content:space-between"><span>${habitHistoryWeeks > 0 ? '<button type="button" class="subtle-link" data-action="habit-history" data-weeks="-1">← Maalmaha cusub</button>' : ''}</span><span class="date-pill">${periodLabel}</span><button type="button" class="subtle-link" data-action="habit-history" data-weeks="1">Soo rar maalmihii hore →</button></div>`;
+    return `${pageHead('JOOGTEYN & CAADO', 'Caadooyinkaaga', 'Caadooyinka active-ka ahi way sii ahaanayaan ilaa aad damiso; calaamadee maalmaha aad qabatay.', `<span class="date-pill">${habits.filter(h => h.active === true).length} / ${habits.length} firfircoon</span>`)}<div class="toolbar"><form id="habit-form" class="toolbar" style="margin:0;width:100%"><input class="field" name="habit" required maxlength="48" placeholder="Caado cusub, tusaale: Socod 20 daqiiqo" style="flex:1;min-width:180px"><button class="button button-primary button-small" type="submit">＋ Ku dar caado</button></form></div>${historyControls}<div class="habit-grid">${cards}</div>`;
   }
 
   function renderConsistency() {
     const buttons = state.consistencyButtons || [];
-    const activeToday = button => button.activeDate ? button.activeDate === todayISO() : !!button.active;
-    const activeCount = buttons.filter(activeToday).length;
-    const cards = buttons.length ? buttons.map(button => { const active = activeToday(button); return `<article class="consistency-card ${active ? 'is-active' : ''} ${button.builtIn ? 'is-default' : ''}"><button type="button" class="consistency-toggle" data-action="consistency-toggle" data-id="${esc(button.id)}" aria-pressed="${active ? 'true' : 'false'}"><span class="consistency-number">${esc(button.name)}</span><span class="consistency-status">${active ? '&#10003; Firfircoon' : '&#9675; Damsan'}</span></button><button type="button" class="mini-action consistency-delete" data-action="consistency-delete" data-id="${esc(button.id)}" aria-label="Adigu tirtir button-kan" title="Adigu tirtir">&times;</button></article>`; }).join('') : empty('Button weli ma jiro', 'Foomka kore ku dar buttons-kaaga gaarka ah.', '&#8635;');
-    return `${pageHead('JOOGTEYN', 'Joogtayntaada', 'Maalin kasta dib u bilow, kadibna calaamadee waxa aad qabatay.', `<span class="date-pill">${activeCount} / ${buttons.length} active maanta</span>`)}<section class="card consistency-builder"><form id="consistency-form"><label for="consistency-label">Magaca button-ka gaarka ah</label><div class="consistency-add-row"><input class="field" id="consistency-label" name="button" required maxlength="60" placeholder="Tusaale: Akhri 10 bog"><button class="button button-primary button-small" type="submit">+ Ku dar button</button></div></form><p class="stat-note">Buttons-kaaga gaarka ah waxaad ku calaamadin kartaa waxyaabaha aad qabatay.</p></section><section class="consistency-grid" aria-label="Buttons-ka joogtaynta">${cards}</section>`;
+    const activeCount = buttons.filter(button => button.active === true).length;
+    const cards = buttons.length ? buttons.map(button => { const active = button.active === true; return `<article class="consistency-card ${active ? 'is-active' : ''} ${button.builtIn ? 'is-default' : ''}"><button type="button" class="consistency-toggle" data-action="consistency-toggle" data-id="${esc(button.id)}" aria-pressed="${active ? 'true' : 'false'}"><span class="consistency-number">${esc(button.name)}</span><span class="consistency-status">${active ? '&#10003; Firfircoon' : '&#9675; Damsan'}</span></button><button type="button" class="mini-action consistency-delete" data-action="consistency-delete" data-id="${esc(button.id)}" aria-label="Adigu tirtir button-kan" title="Adigu tirtir">&times;</button></article>`; }).join('') : empty('Button weli ma jiro', 'Foomka kore ku dar buttons-kaaga gaarka ah.', '&#8635;');
+    return `${pageHead('JOOGTEYN', 'Joogtayntaada', 'Button-ku wuu sii firfircoonaanayaa ilaa aad adigu damiso.', `<span class="date-pill">${activeCount} / ${buttons.length} firfircoon</span>`)}<section class="card consistency-builder"><form id="consistency-form"><label for="consistency-label">Magaca button-ka gaarka ah</label><div class="consistency-add-row"><input class="field" id="consistency-label" name="button" required maxlength="60" placeholder="Tusaale: Akhri 10 bog"><button class="button button-primary button-small" type="submit">+ Ku dar button</button></div></form><p class="stat-note">Button-ka firfircoon wuu sii ahaanayaa ilaa aad mar kale damiso.</p></section><section class="consistency-grid" aria-label="Buttons-ka joogtaynta">${cards}</section>`;
   }
 
   function renderGoals() {
@@ -581,6 +578,7 @@
     if (action === 'date-shift') { plannerDate = isoForOffset(plannerDate, Number(target.dataset.days)); return render(); }
     if (action === 'date-today') { plannerDate = todayISO(); return render(); }
     if (action === 'week-shift') { plannerDate = isoForOffset(weekStart(plannerDate), Number(target.dataset.weeks) * 7); return render(); }
+    if (action === 'habit-history') { habitHistoryWeeks = Math.max(0, habitHistoryWeeks + Number(target.dataset.weeks || 0)); return render(); }
     if (action === 'week-today') { plannerDate = todayISO(); return render(); }
     if (action === 'month-shift') {
       if (!shiftMonth(Number(target.dataset.months))) return;
@@ -603,9 +601,10 @@
       save(); render(); toast('Kulanka waa la tirtiray.'); return;
     }
     if (action === 'subject-delete') { if (confirm(localizedText('Ma tirtirtaa maaddadan?', 'Delete this subject?'))) { state.subjects = state.subjects.filter(s => s.id !== id); save(); render(); toast('Maaddada waa la tirtiray.'); } return; }
-    if (action === 'habit-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit) return; habit.days ||= []; habit.days = habit.days.includes(date) ? habit.days.filter(d => d !== date) : [...habit.days, date].sort(); save(); render(); return; }
+    if (action === 'habit-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit) return; habit.days ||= []; const done = habit.days.includes(date); habit.days = done ? habit.days.filter(d => d !== date) : [...habit.days, date].sort(); if (!done) habit.active = true; save(); render(); return; }
+    if (action === 'habit-active-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit) return; habit.active = habit.active !== true; save(); render(); return; }
     if (action === 'habit-delete') { if (confirm(localizedText('Ma tirtirtaa caadadan iyo diiwaankeeda?', 'Delete this habit and its history?'))) { state.habits = state.habits.filter(h => h.id !== id); save(); render(); toast('Caadada waa la tirtiray.'); } return; }
-    if (action === 'consistency-toggle') { const button = (state.consistencyButtons || []).find(item => item.id === id); if (!button) return; const isActive = button.activeDate ? button.activeDate === todayISO() : !!button.active; button.activeDate = isActive ? '' : todayISO(); button.active = false; save(); render(); return; }
+    if (action === 'consistency-toggle') { const button = (state.consistencyButtons || []).find(item => item.id === id); if (!button) return; button.active = button.active !== true; button.activeDate = ''; save(); render(); return; }
     if (action === 'consistency-delete') { if (confirm(localizedText('Ma tirtirtaa button-kan?', 'Delete this button?'))) { state.consistencyButtons = (state.consistencyButtons || []).filter(item => item.id !== id); save(); render(); toast('Button-ka waa la tirtiray.'); } return; }
     if (action === 'goal-progress') { const goal = state.goals.find(g => g.id === id); if (!goal) return; goal.progress = Math.min(100, goalProgress(goal) + 10); save(); render(); toast(goal.progress >= 100 ? 'Hambalyo, yoolka waa la gaaray!' : 'Horumarka yoolka waa la cusboonaysiiyey.'); return; }
     if (action === 'goal-delete') { if (confirm(localizedText('Ma tirtirtaa yoolkan?', 'Delete this goal?'))) { state.goals = state.goals.filter(g => g.id !== id); save(); render(); toast('Yoolka waa la tirtiray.'); } return; }
@@ -614,7 +613,19 @@
     if (action === 'export') return exportData();
     if (action === 'import') return document.getElementById('import-file').click();
     if (action === 'clear-data') { if (!confirm(localizedText('Tani waxay tirtiraysaa hawlaha, caadooyinka, yoolasha iyo qoraallada akoonkan. Ma sii wadaysaa?', 'This will delete the tasks, habits, goals, and notes in this account. Continue?'))) return; if (!store.replace(store.emptyState())) { state = store.get(); toast('Kaydintu way fashilantay; xogta lama tirtirin.', true); return; } state = store.get(); state.settings.name = session.name || ''; save(); render(); toast('Xogta qorshaha waa la nadiifiyey.'); return; }
-    if (action === 'logout') { clearInterval(timerInterval); sessionStorage.removeItem('nolosha-session'); location.href = 'login.html'; return; }
+    if (action === 'logout') {
+      const logoutButton = target.closest('button');
+      if (logoutButton) logoutButton.disabled = true;
+      store.flush().then(() => {
+        clearInterval(timerInterval);
+        sessionStorage.removeItem('nolosha-session');
+        location.href = 'login.html';
+      }).catch(error => {
+        if (logoutButton) logoutButton.disabled = false;
+        toast(error.message || 'Xogta cloud-ka lama xaqiijin; dib u isku day marka internet-ku shaqaynayo.', true);
+      });
+      return;
+    }
     if (action === 'save-week-review') saveWeeklyReview();
   });
 
@@ -632,7 +643,7 @@
       const result = await window.NoloshaCloud.loadData();
       if (!result.data || store.pending()) return;
       const before = JSON.stringify(store.get());
-      store.load(result.data);
+      store.load(result.data, result.updatedAt);
       state = store.get();
       if (JSON.stringify(state) !== before) render();
       document.getElementById('storage-status').textContent = 'Xogta account-ka cloud-ka waa la kaydiyey.';
@@ -645,6 +656,7 @@
   window.addEventListener('focus', refreshAccountData);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') refreshAccountData();
+    else if (!previewMode && session?.token) store.flush({ keepalive: true }).catch(error => console.warn('Could not flush planner data while the page is hidden.', error));
   });
   setInterval(() => {
     if (document.visibilityState === 'visible') refreshAccountData();

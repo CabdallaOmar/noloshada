@@ -420,8 +420,13 @@
     try { return JSON.parse(sessionStorage.getItem('nolosha-session') || 'null'); } catch (_) { return null; }
   }
   function syncServer() {
+    if (new URLSearchParams(location.search).get('preview') === '1') {
+      localStorage.setItem(userKey(), JSON.stringify(state));
+      document.dispatchEvent(new CustomEvent('nolosha:preview-saved'));
+      return;
+    }
     const session = currentSession();
-    if (!session?.token || new URLSearchParams(location.search).get('preview') === '1') return;
+    if (!session?.token) return;
     const snapshot = JSON.stringify(state);
     try { writePending(snapshot, session); }
     catch (error) {

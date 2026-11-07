@@ -476,7 +476,36 @@ body.app-page[data-active-view="settings"]{--accent:#b5bac4;--accent-2:#d2d5dc;-
 .habit-history-nav .button:first-child{justify-self:start}
 .habit-history-nav .button:last-child{justify-self:end}
 .habit-history-nav .button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.habit-day-before{border-color:transparent;background:transparent;color:var(--dim);cursor:default;pointer-events:none}
 @media(max-width:420px){.habit-history-nav{grid-template-columns:minmax(67px,1fr) auto minmax(67px,1fr);gap:5px;padding:8px}.habit-history-nav .button{padding:7px 8px;font-size:11px}.habit-history-nav .date-pill{padding:7px 8px;font-size:8px}}
+
+/* Habit history buttons keep their compact size and use the section accent. */
+.app-page[data-active-view="habits"] #app-content .habit-history-nav .button,
+.app-page[data-active-view="habits"] #app-content .habit-history-nav .button:hover{background:var(--accent)!important;background-image:none!important;border-color:var(--accent)!important;color:#172111!important}
+
+/* Dark mode keeps all three focus cards white with dark card text. */
+.app-page:not(.light-theme)[data-active-view="time"] #app-content .time-layout>.grid>.card{background:#fff!important;background-image:none!important;border-color:#dfe3e9!important;color:#17191d!important;--text:#17191d;--muted:#606975;--dim:#78818c;--line:#d8dde5;--line-soft:#e7eaf0;--panel:#fff;--panel-2:#f5f7fa}
+.app-page:not(.light-theme)[data-active-view="time"] #app-content .time-layout>.grid>.card :is(.card-title h2,.card-title p,.stat-number,.stat-number span,.stat-note,.empty-state,.empty-state b){color:#17191d!important}
+
+/* The study shortcut reverses its colors with the selected theme. */
+.app-page[data-active-view="study"] #app-content .study-focus-link,
+.app-page[data-active-view="study"] #app-content .study-focus-link:hover{background:#000!important;background-image:none!important;border-color:#000!important;color:#fff!important}
+.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link,
+.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link:hover{background:#fff!important;background-image:none!important;border-color:#dfe3e9!important;color:#17191d!important}
+
+/* Keep long habit names contained in the card header. */
+.habit-card .habit-top>.subject-top{flex:1;min-width:0}
+.habit-name-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
+.habit-name-row h3{overflow-wrap:anywhere}
+.habit-card-actions{display:flex;align-items:center;gap:3px;flex:none}
+.app-page[data-active-view="habits"] #app-content .habit-card{border-color:#92d66d55!important;box-shadow:0 6px 20px #92d66d10}
+.app-page[data-active-view="habits"] #app-content .habit-icon{background:#92d66d1b!important;color:#54853b!important}
+.app-page.light-theme[data-active-view="habits"] #app-content .habit-icon{background:#92d66d24!important;color:#b4e797!important}
+.app-page[data-active-view="habits"] #app-content .habit-day.done{background:#92d66d24!important;border-color:#92d66d70!important;color:#376522!important}
+.app-page.light-theme[data-active-view="habits"] #app-content .habit-day.done{color:#b4e797!important}
+.app-page[data-active-view="habits"] #app-content .habit-day.today{border-color:#92d66d!important}
+.app-page[data-active-view="habits"] #app-content .habit-icon-select{min-width:150px;border-color:#92d66d85!important;box-shadow:0 0 0 2px #92d66d12}
+.app-page[data-active-view="habits"] #app-content .habit-icon-select:focus{outline-color:#92d66d}
 
 /* Settings action buttons use clear theme-aware contrast. */
 .app-page[data-active-view="settings"] #app-content .settings-grid .settings-actions .button,

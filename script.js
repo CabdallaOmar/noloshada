@@ -38,6 +38,10 @@
       else console.warn('Could not load account data from server.', error);
     }
   }
+  else if (previewMode) {
+    const previewData = store.legacy();
+    if (previewData) store.load(previewData);
+  }
   const app = document.getElementById('app-content');
   if (accountLoadError && !recoveredLocalCopy) {
     app.innerHTML = '<section class="card"><h1>Account data could not be loaded</h1><p>Check your internet connection and Supabase setup. Your cloud data has not been changed.</p><button class="button button-primary" type="button" id="retry-account-load">Retry</button></section>';
@@ -45,14 +49,24 @@
     document.getElementById('retry-account-load').addEventListener('click', () => location.reload());
     return;
   }
-  if (recoveredLocalCopy) document.getElementById('storage-status').textContent = 'Xogtu qalabkan ayay ku kaydsan tahay; cloud-ku wuxuu sugayaa xiriir.';
+  if (previewMode) document.getElementById('storage-status').textContent = 'Xogta tusaalaha browser-kan ayaa lagu kaydiyaa.';
+  else if (recoveredLocalCopy) document.getElementById('storage-status').textContent = 'Xogtu qalabkan ayay ku kaydsan tahay; cloud-ku wuxuu sugayaa xiriir.';
   else document.getElementById('storage-status').textContent = 'Xogta account-ka cloud-ka waa la kaydiyey.';
   let state = store.get();
+  let migratedHabitDates = false;
+  state.habits.forEach(habit => {
+    if (isISODate(habit.createdAt)) return;
+    const firstRecordedDay = (habit.days || []).filter(isISODate).sort()[0];
+    habit.createdAt = firstRecordedDay || todayISO();
+    migratedHabitDates = true;
+  });
+  if (migratedHabitDates) save();
   const modal = document.getElementById('modal-backdrop');
   const taskForm = document.getElementById('task-form');
   const categorySelect = document.getElementById('task-category');
   let view = 'overview';
   let habitHistoryWeeks = 0;
+  let editingHabitId = '';
   let plannerDate = todayISO();
   let monthCursor = new Date(); monthCursor.setDate(1);
   let selectedCalendarDate = todayISO();
@@ -79,9 +93,9 @@
     ];
     const lastWeek = Array.from({ length: 7 }, (_, i) => isoForOffset(todayISO(), i - 6));
     state.habits = [
-      { id: crypto.randomUUID(), name: 'Read for 20 minutes', icon: '⌑', days: lastWeek.filter((_, i) => [0, 1, 3, 4, 6].includes(i)) },
-      { id: crypto.randomUUID(), name: 'Drink enough water', icon: '◈', days: lastWeek.filter((_, i) => [0, 1, 2, 4, 5, 6].includes(i)) },
-      { id: crypto.randomUUID(), name: 'Walk or exercise', icon: '✳', days: lastWeek.filter((_, i) => [1, 3, 5].includes(i)) }
+      { id: crypto.randomUUID(), name: 'Read for 20 minutes', icon: '⌑', createdAt: lastWeek[0], days: lastWeek.filter((_, i) => [0, 1, 3, 4, 6].includes(i)) },
+      { id: crypto.randomUUID(), name: 'Drink enough water', icon: '◈', createdAt: lastWeek[0], days: lastWeek.filter((_, i) => [0, 1, 2, 4, 5, 6].includes(i)) },
+      { id: crypto.randomUUID(), name: 'Walk or exercise', icon: '✳', createdAt: lastWeek[0], days: lastWeek.filter((_, i) => [1, 3, 5].includes(i)) }
     ];
     state.subjects = [
       { id: crypto.randomUUID(), name: 'Biology', target: 12, hoursDone: 8.5 },
@@ -102,6 +116,7 @@
   }
 
   function todayISO(date = new Date()) { const y = date.getFullYear(); const m = `${date.getMonth() + 1}`.padStart(2, '0'); const d = `${date.getDate()}`.padStart(2, '0'); return `${y}-${m}-${d}`; }
+  function isISODate(value) { return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && todayISO(parseDate(value)) === value; }
   function parseDate(value) { const [y, m, d] = (value || todayISO()).split('-').map(Number); return new Date(y, m - 1, d, 12); }
   function currentLocale() { return window.NoloshaI18n ? window.NoloshaI18n.getLocale() : 'so-SO'; }
   function localizedText(somali, english) { return window.NoloshaI18n?.getLanguage() === 'en' ? english : somali; }
@@ -286,16 +301,31 @@
     return `${pageHead('WAXBARASHO & KORRIIN', 'Waxbarashadaada', 'La soco maaddooyinka, waqtiga iyo horumarkaaga.', `<span class="date-pill">${totalDone.toFixed(1)} / ${totalTarget.toFixed(1)} saac</span>`)}<div class="toolbar"><form id="subject-form" class="toolbar" style="margin:0;flex:1"><input class="field" name="subject" required maxlength="50" placeholder="Magaca maaddada" style="flex:1;min-width:150px"><input class="field" name="target" type="number" min="1" max="1000" step="1" value="10" aria-label="Saacadaha yoolka" style="width:125px"><button class="button button-primary button-small" type="submit">＋ Ku dar maaddo</button></form></div><div class="subject-grid">${subjectCards}</div><article class="card" style="margin-top:14px"><div class="card-title"><div><h2>Diiwaanka waxbarashada</h2><p>Kulan kasta wuxuu ku darsamaa waqtiga maaddada aad doorato.</p></div><button class="button button-quiet button-small study-focus-link" data-action="switch-view" data-view="time">Open focus timer →</button></div><p class="stat-note">Casharrada iyo imtixaannada waxaad ku dari kartaa qaybta hawlaha adigoo dooranaya “Waxbarasho”.</p></article>`;
   }
 
-  function streak(habit) { const days = new Set(habit.days || []); let cursor = parseDate(todayISO()); if (!days.has(todayISO())) cursor.setDate(cursor.getDate() - 1); let count = 0; while (days.has(todayISO(cursor))) { count++; cursor.setDate(cursor.getDate() - 1); } return count; }
+  function streak(habit) { const days = new Set(habit.days || []); let cursor = parseDate(todayISO()); if (!days.has(todayISO())) cursor.setDate(cursor.getDate() - 1); let count = 0; while (todayISO(cursor) >= habitTrackingStart(habit) && days.has(todayISO(cursor))) { count++; cursor.setDate(cursor.getDate() - 1); } return count; }
+  function habitTrackingStart(habit) { return isISODate(habit.historyFrom) ? habit.historyFrom : habit.createdAt; }
   function renderHabits() {
     const dates = Array.from({ length: 7 }, (_, i) => isoForOffset(todayISO(), i - 6 - habitHistoryWeeks * 7));
     const habits = state.habits || [];
+    const editingHabit = habits.find(habit => habit.id === editingHabitId);
+    const iconChoices = [
+      ['✳', 'Guud'], ['📚', 'Akhris'], ['📖', 'Quraan akhri'], ['💧', 'Biyo cab'], ['🏃', 'Jimicsi'], ['🚶', 'Socod'], ['🏋️', 'Miisaan qaad'], ['🚴', 'Baaskiil'], ['🏊', 'Dabaal'],
+      ['🧘', 'Deganaansho'], ['🌬️', 'Neefsasho'], ['🙏', 'Salaad'], ['✍️', 'Qoris'], ['🧠', 'Barasho'], ['🗓️', 'Qorshayn'], ['💻', 'Shaqo'], ['🎸', 'Muusig'], ['🎨', 'Farshaxan'],
+      ['🥗', 'Cunto caafimaad'], ['🍎', 'Miro cun'], ['🍳', 'Cunto kari'], ['💊', 'Daawo'], ['🛌', 'Hurdo'], ['🌅', 'Subax hore'], ['🪥', 'Cadayasho'], ['🚿', 'Qubeys'], ['🧴', 'Daryeel nafta'],
+      ['🧹', 'Nadaafad'], ['🧺', 'Dhar dhaq'], ['📵', 'Ka naso taleefanka'], ['💰', 'Lacag kaydi'], ['🌱', 'Daryeel dhir'], ['🐕', 'Daryeel xayawaan'], ['🤝', 'Qoys iyo saaxiib'], ['🚭', 'Sigaar jooji']
+    ];
+    const selectedIcon = editingHabit?.icon || '✳';
+    if (!iconChoices.some(([icon]) => icon === selectedIcon)) iconChoices.unshift([selectedIcon, 'Icon hore']);
+    const iconOptions = iconChoices.map(([icon, label]) => `<option value="${esc(icon)}" ${icon === selectedIcon ? 'selected' : ''}>${esc(icon)} ${label}</option>`).join('');
+    const oldestHabitDate = habits.map(habitTrackingStart).filter(isISODate).sort()[0] || '';
     const periodLabel = habitHistoryWeeks === 0
       ? '7-dii maalmood ee u dambeeyey'
       : `${dateLabel(dates[0], { month: 'short', day: 'numeric' })} – ${dateLabel(dates[6], { month: 'short', day: 'numeric' })}`;
-    const cards = habits.length ? habits.map(h => { const days = h.days || []; const active = h.active === true; return `<article class="habit-card"><div class="habit-top"><div class="subject-top" style="justify-content:flex-start"><span class="habit-icon">${esc(h.icon || '✳')}</span><div><h3 style="margin:0 0 3px">${esc(h.name)}</h3><button type="button" class="subtle-link habit-active-toggle" data-action="habit-active-toggle" data-id="${esc(h.id)}" aria-pressed="${active ? 'true' : 'false'}">${active ? '✓ Firfircoon' : '○ Damsan'}</button></div></div><button class="mini-action" data-action="habit-delete" data-id="${esc(h.id)}" title="Tirtir">×</button></div><div class="habit-week">${dates.map(d => `<button class="habit-day ${days.includes(d) ? 'done' : ''} ${d === todayISO() ? 'today' : ''}" data-action="habit-toggle" data-id="${esc(h.id)}" data-date="${d}" title="${dateLabel(d)}">${days.includes(d) ? '✓' : parseDate(d).getDate()}</button>`).join('')}</div><div class="habit-foot"><span>${periodLabel}</span><span class="habit-streak">🔥 ${streak(h)} maalmood</span></div></article>`; }).join('') : empty('Caado cusub ku dar', 'Caadooyinka yaryar ee joogtada ahi waxay keenaan isbeddel weyn.', '✳');
-    const historyControls = `<nav class="habit-history-nav" aria-label="Taariikhda caadooyinka"><button type="button" class="button button-quiet button-small" data-action="habit-history" data-weeks="1" aria-label="Eeg toddobaadka ka sii horreeya">← <span>Hore</span></button><span class="date-pill" aria-live="polite">${periodLabel}</span><button type="button" class="button button-quiet button-small" data-action="habit-history" data-weeks="-1" aria-label="Eeg toddobaadka xiga" ${habitHistoryWeeks === 0 ? 'disabled' : ''}><span>Xiga</span> →</button></nav>`;
-    return `${pageHead('JOOGTEYN & CAADO', 'Caadooyinkaaga', 'Caadooyinka active-ka ahi way sii ahaanayaan ilaa aad damiso; calaamadee maalmaha aad qabatay.', `<span class="date-pill">${habits.filter(h => h.active === true).length} / ${habits.length} firfircoon</span>`)}<div class="toolbar"><form id="habit-form" class="toolbar" style="margin:0;width:100%"><input class="field" name="habit" required maxlength="48" placeholder="Caado cusub, tusaale: Socod 20 daqiiqo" style="flex:1;min-width:180px"><button class="button button-primary button-small" type="submit">＋ Ku dar caado</button></form></div>${historyControls}<div class="habit-grid">${cards}</div>`;
+    const visibleHabits = habits.filter(habit => habitTrackingStart(habit) <= dates[6]);
+    const cards = visibleHabits.length ? visibleHabits.map(h => { const days = h.days || []; const trackingStart = habitTrackingStart(h); return `<article class="habit-card"><div class="habit-top"><div class="subject-top" style="justify-content:flex-start"><span class="habit-icon">${esc(h.icon || '✳')}</span><div class="habit-name-row"><h3 style="margin:0">${esc(h.name)}</h3></div></div><div class="habit-card-actions"><button type="button" class="mini-action" data-action="habit-edit" data-id="${esc(h.id)}" title="Wax ka beddel caadadan" aria-label="Wax ka beddel caadadan">✎</button><button type="button" class="mini-action" data-action="habit-delete" data-id="${esc(h.id)}" title="Tirtir">×</button></div></div><div class="habit-week">${dates.map(d => d < trackingStart && habitHistoryWeeks !== 0 ? `<span class="habit-day habit-day-before" aria-label="Caadadan weli lama abuurin">·</span>` : `<button class="habit-day ${days.includes(d) ? 'done' : ''} ${d === todayISO() ? 'today' : ''}" data-action="habit-toggle" data-id="${esc(h.id)}" data-date="${d}" title="${dateLabel(d)}">${days.includes(d) ? '✓' : parseDate(d).getDate()}</button>`).join('')}</div><div class="habit-foot"><span>${periodLabel}</span><span class="habit-streak">🔥 ${streak(h)} maalmood</span></div></article>`; }).join('') : habits.length ? empty('Caado weli ma jirin', 'Toddobaadkan caadooyinkan weli lama abuurin.', '✳') : empty('Caado cusub ku dar', 'Caadooyinka yaryar ee joogtada ahi waxay keenaan isbeddel weyn.', '✳');
+    const canGoOlder = Boolean(oldestHabitDate && dates[0] > oldestHabitDate);
+    const historyControls = `<nav class="habit-history-nav" aria-label="Taariikhda caadooyinka"><button type="button" class="button button-quiet button-small" data-action="habit-history" data-weeks="1" aria-label="Eeg toddobaadka ka sii horreeya" ${canGoOlder ? '' : 'disabled'}>← <span>Hore</span></button><span class="date-pill" aria-live="polite">${periodLabel}</span><button type="button" class="button button-quiet button-small" data-action="habit-history" data-weeks="-1" aria-label="Eeg toddobaadka xiga" ${habitHistoryWeeks === 0 ? 'disabled' : ''}><span>Xiga</span> →</button></nav>`;
+    const habitForm = `<div class="toolbar"><form id="habit-form" class="toolbar" style="margin:0;width:100%"><input class="field" name="habit" required maxlength="48" placeholder="Caado cusub, tusaale: Socod 20 daqiiqo" value="${esc(editingHabit?.name || '')}" style="flex:1;min-width:180px"><select class="field field-select habit-icon-select" name="habitIcon" aria-label="Dooro astaanta caadada">${iconOptions}</select><button class="button button-primary button-small" type="submit">${editingHabit ? 'Kaydi wax-ka-beddelka' : '＋ Ku dar caado'}</button>${editingHabit ? '<button class="button button-quiet button-small" type="button" data-action="habit-edit-cancel">Ka noqo</button>' : ''}</form></div>`;
+    return `${pageHead('JOOGTEYN & CAADO', 'Caadooyinkaaga', 'Maalin kasta calaamadee caadooyinka aad qabatay.')} ${habitForm}${historyControls}<div class="habit-grid">${cards}</div>`;
   }
 
   function renderConsistency() {
@@ -361,6 +391,10 @@
   document.addEventListener('nolosha:server-saved', () => {
     const status = document.getElementById('storage-status');
     if (status) status.textContent = 'Xogta account-ka server-ka waa la kaydiyey.';
+  });
+  document.addEventListener('nolosha:preview-saved', () => {
+    const status = document.getElementById('storage-status');
+    if (status) status.textContent = 'Xogta tusaalaha browser-kan waa la kaydiyey.';
   });
   function addTaskFromForm(event) {
     event.preventDefault(); if (!taskForm.reportValidity()) return;
@@ -497,7 +531,7 @@
     });
     const consistencyForm = document.getElementById('consistency-form'); if (consistencyForm) consistencyForm.addEventListener('submit', e => { e.preventDefault(); const name = String(new FormData(consistencyForm).get('button') || '').trim(); if (!name) return toast('Geli magaca button-ka.', true); state.consistencyButtons ||= []; if (state.consistencyButtons.filter(button => !button.builtIn).length >= 100) return toast('Waxaad ku dari kartaa ugu badnaan 100 button oo gaar ah.', true); state.consistencyButtons.push({ id: crypto.randomUUID(), name: name.slice(0, 60), active: false, builtIn: false }); save(); render(); toast('Button-ka waa lagu daray.'); });
     const subjectForm = document.getElementById('subject-form'); if (subjectForm) subjectForm.addEventListener('submit', e => { e.preventDefault(); const fd = new FormData(subjectForm); const name = String(fd.get('subject') || '').trim(); if (!name) return toast('Geli magaca maaddada.', true); state.subjects.push({ id: crypto.randomUUID(), name, target: Number(fd.get('target')) || 10, hoursDone: 0 }); save(); render(); toast('Maaddada waa lagu daray.'); });
-    const habitForm = document.getElementById('habit-form'); if (habitForm) habitForm.addEventListener('submit', e => { e.preventDefault(); const fd = new FormData(habitForm); const name = String(fd.get('habit') || '').trim(); if (!name) return toast('Geli magaca caadada.', true); state.habits.push({ id: crypto.randomUUID(), name, icon: '✳', days: [] }); save(); render(); toast('Caadada cusub waa la kaydiyey.'); });
+    const habitForm = document.getElementById('habit-form'); if (habitForm) habitForm.addEventListener('submit', e => { e.preventDefault(); const fd = new FormData(habitForm); const name = String(fd.get('habit') || '').trim(); if (!name) return toast('Geli magaca caadada.', true); const icon = String(fd.get('habitIcon') || '✳'); const existing = state.habits.find(habit => habit.id === editingHabitId); if (existing) { existing.name = name; existing.icon = icon; editingHabitId = ''; save(); render(); toast('Caadada waa la cusboonaysiiyey.'); return; } editingHabitId = ''; state.habits.push({ id: crypto.randomUUID(), name, icon, createdAt: todayISO(), days: [] }); habitHistoryWeeks = 0; save(); render(); toast('Caadada cusub waa la kaydiyey.'); });
     const goalForm = document.getElementById('goal-form'); if (goalForm) goalForm.addEventListener('submit', e => { e.preventDefault(); const fd = new FormData(goalForm); const title = String(fd.get('goal') || '').trim(); if (!title) return toast('Geli magaca yoolka.', true); state.goals.push({ id: crypto.randomUUID(), title, deadline: String(fd.get('deadline') || ''), progress: 0, milestone: '' }); save(); render(); toast('Yoolka waa lagu daray.'); });
     const journalForm = document.getElementById('journal-form'); if (journalForm) journalForm.addEventListener('submit', e => { e.preventDefault(); const text = new FormData(journalForm).get('entry').toString().trim(); if (!text) return toast('Qor wax yar ka hor intaadan kaydin.', true); const existing = state.journal.find(j => j.date === todayISO()); if (existing) existing.text = text; else state.journal.push({ id: crypto.randomUUID(), date: todayISO(), text }); save(); render(); toast('Qoraalka maanta waa la kaydiyey.'); });
     const profileForm = document.getElementById('profile-form'); if (profileForm) profileForm.addEventListener('submit', e => { e.preventDefault(); const fd = new FormData(profileForm); const name = String(fd.get('name') || '').trim(); if (!name) return toast('Geli magacaaga.', true); state.settings.name = name; state.settings.timeFormat = String(fd.get('timeFormat')); migrateWeeklyReviews(String(fd.get('weekStart'))); weekdays = localizedWeekdays('long'); shortDays = localizedWeekdays('short'); const nextSession = { ...session, name: state.settings.name }; sessionStorage.setItem('nolosha-session', JSON.stringify(nextSession)); session = nextSession; save(); render(); toast('Profile-ka waa la cusboonaysiiyey.'); });
@@ -579,6 +613,8 @@
     if (action === 'date-today') { plannerDate = todayISO(); return render(); }
     if (action === 'week-shift') { plannerDate = isoForOffset(weekStart(plannerDate), Number(target.dataset.weeks) * 7); return render(); }
     if (action === 'habit-history') { habitHistoryWeeks = Math.max(0, habitHistoryWeeks + Number(target.dataset.weeks || 0)); return render(); }
+    if (action === 'habit-edit') { editingHabitId = id; render(); const form = document.getElementById('habit-form'); form?.scrollIntoView({ behavior: 'smooth', block: 'center' }); form?.elements.habit?.focus({ preventScroll: true }); return; }
+    if (action === 'habit-edit-cancel') { editingHabitId = ''; return render(); }
     if (action === 'week-today') { plannerDate = todayISO(); return render(); }
     if (action === 'month-shift') {
       if (!shiftMonth(Number(target.dataset.months))) return;
@@ -601,9 +637,8 @@
       save(); render(); toast('Kulanka waa la tirtiray.'); return;
     }
     if (action === 'subject-delete') { if (confirm(localizedText('Ma tirtirtaa maaddadan?', 'Delete this subject?'))) { state.subjects = state.subjects.filter(s => s.id !== id); save(); render(); toast('Maaddada waa la tirtiray.'); } return; }
-    if (action === 'habit-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit) return; habit.days ||= []; const done = habit.days.includes(date); habit.days = done ? habit.days.filter(d => d !== date) : [...habit.days, date].sort(); if (!done) habit.active = true; save(); render(); return; }
-    if (action === 'habit-active-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit) return; habit.active = habit.active !== true; save(); render(); return; }
-    if (action === 'habit-delete') { if (confirm(localizedText('Ma tirtirtaa caadadan iyo diiwaankeeda?', 'Delete this habit and its history?'))) { state.habits = state.habits.filter(h => h.id !== id); save(); render(); toast('Caadada waa la tirtiray.'); } return; }
+    if (action === 'habit-toggle') { const habit = state.habits.find(h => h.id === id); if (!habit || (date < habitTrackingStart(habit) && habitHistoryWeeks !== 0)) return; habit.days ||= []; const done = habit.days.includes(date); habit.days = done ? habit.days.filter(d => d !== date) : [...habit.days, date].sort(); habit.historyFrom = habit.days.filter(day => day < habit.createdAt).sort()[0] || ''; save(); render(); return; }
+    if (action === 'habit-delete') { if (confirm(localizedText('Ma tirtirtaa caadadan iyo diiwaankeeda?', 'Delete this habit and its history?'))) { state.habits = state.habits.filter(h => h.id !== id); if (editingHabitId === id) editingHabitId = ''; save(); render(); toast('Caadada waa la tirtiray.'); } return; }
     if (action === 'consistency-toggle') { const button = (state.consistencyButtons || []).find(item => item.id === id); if (!button) return; button.active = button.active !== true; button.activeDate = ''; save(); render(); return; }
     if (action === 'consistency-delete') { if (confirm(localizedText('Ma tirtirtaa button-kan?', 'Delete this button?'))) { state.consistencyButtons = (state.consistencyButtons || []).filter(item => item.id !== id); save(); render(); toast('Button-ka waa la tirtiray.'); } return; }
     if (action === 'goal-progress') { const goal = state.goals.find(g => g.id === id); if (!goal) return; goal.progress = Math.min(100, goalProgress(goal) + 10); save(); render(); toast(goal.progress >= 100 ? 'Hambalyo, yoolka waa la gaaray!' : 'Horumarka yoolka waa la cusboonaysiiyey.'); return; }

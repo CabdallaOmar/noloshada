@@ -85,7 +85,7 @@
     'Tusaale: Aamina': 'Example: Aamina', 'Wadarta hawlaha dhammaaday': 'Total completed tasks', 'WAQTIGA': 'TIME', 'Waqti aad si ula kac ah ugu qoondeysay': 'Time you set aside intentionally',
     'Waqti furan': 'Unscheduled', 'Waqti lama cayimin': 'Time not set', 'Waqti guud': 'General time', 'Waqtiga': 'Time', 'Waqtiga diiradda': 'Focus time', 'Waqtiga si xikmad leh u isticmaal': 'Use your time wisely',
     'Waqtigaaga diiradda saar': 'Focus on your work', 'Kulan weli ma jiro': 'No sessions yet', 'Diiwaangeli kulan markaad dhammayso.': 'Log a session when you finish.',
-    'Hakad geli': 'Pause', 'Bilow diiradda': 'Start focusing', 'Maanta waa la qabtay': 'Done today', 'Caado maalinle ah': 'Daily habit',
+    'Hakad geli': 'Pause', 'Bilow diiradda': 'Start focusing', 'Maanta waa la qabtay': 'Done today', 'Caado maalinle ah': 'Daily habit', 'Hore': 'Previous', 'Xiga': 'Next', 'Taariikhda caadooyinka': 'Habit history', 'Eeg toddobaadka ka sii horreeya': 'View the previous week', 'Eeg toddobaadka xiga': 'View the next week',
     'Maalin kasta calaamadee caadooyinka aad qabatay.': 'Mark the habits you complete each day.', 'Caado cusub, tusaale: Socod 20 daqiiqo': 'New habit, e.g. Walk for 20 minutes',
     'Button-ku wuu sii firfircoonaanayaa ilaa aad adigu damiso.': 'A button stays active until you turn it off.',
     'Button-ka firfircoon wuu sii ahaanayaa ilaa aad mar kale damiso.': 'An active button stays active until you turn it off again.',

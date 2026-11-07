@@ -469,6 +469,15 @@ body.app-page[data-active-view="settings"]{--accent:#b5bac4;--accent-2:#d2d5dc;-
 .app-page[data-active-view="time"] #app-content .time-layout>.grid>.card :is(h2,p,b,small,span,button){color:#fff!important}
 .app-page[data-active-view="time"] #app-content .time-layout>.grid>.card .button-quiet{background:#000!important;border-color:#3a3a3a!important}
 
+/* Habit history uses a clear, compact two-way date navigator. */
+.habit-history-nav{display:grid;grid-template-columns:minmax(76px,1fr) auto minmax(76px,1fr);align-items:center;gap:10px;margin:0 0 14px;padding:9px 11px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.habit-history-nav .date-pill{justify-self:center;white-space:nowrap;text-align:center}
+.habit-history-nav .button{min-height:34px;gap:7px;border-radius:9px}
+.habit-history-nav .button:first-child{justify-self:start}
+.habit-history-nav .button:last-child{justify-self:end}
+.habit-history-nav .button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+@media(max-width:420px){.habit-history-nav{grid-template-columns:minmax(67px,1fr) auto minmax(67px,1fr);gap:5px;padding:8px}.habit-history-nav .button{padding:7px 8px;font-size:11px}.habit-history-nav .date-pill{padding:7px 8px;font-size:8px}}
+
 /* Settings action buttons use clear theme-aware contrast. */
 .app-page[data-active-view="settings"] #app-content .settings-grid .settings-actions .button,
 .app-page[data-active-view="settings"] #app-content .settings-grid .setting-row > .button,
@@ -495,9 +504,3 @@ body.app-page[data-active-view="settings"]{--accent:#b5bac4;--accent-2:#d2d5dc;-
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-/* Open focus timer button: black with white text in dark mode, inverse in light mode. */
-.app-page[data-active-view="study"] #app-content .study-focus-link{background:#000!important;color:#fff!important;border-color:#555!important}
-.app-page[data-active-view="study"] #app-content .study-focus-link:hover{background:#000!important;color:#fff!important;border-color:#777!important}
-.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link{background:#fff!important;color:#000!important;border-color:#cbd2dc!important}
-.app-page.light-theme[data-active-view="study"] #app-content .study-focus-link:hover{background:#fff!important;color:#000!important;border-color:#aeb7c3!important}

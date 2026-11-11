@@ -138,7 +138,7 @@
       }));
     normalized.consistencyButtons = candidate.consistencyButtonsSeeded === true
       ? savedConsistencyButtons
-      : uniqueById([...defaultConsistencyButtons(), ...savedConsistencyButtons]);
+      : uniqueById([...savedConsistencyButtons, ...defaultConsistencyButtons()]);
     normalized.consistencyButtonsSeeded = true;
     const sourceTombstones = isRecord(candidate._syncTombstones) ? candidate._syncTombstones : {};
     normalized._syncTombstones = {};

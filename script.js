@@ -19,7 +19,8 @@
       let initialData = remoteData;
       if (legacyData) initialData = store.mergeData(initialData, legacyData, result.updatedAt);
       if (pending) initialData = store.mergeData(initialData, pending.data, result.updatedAt, pending.savedAt);
-      if (pending || legacyData || !remoteData) {
+      const needsConsistencySeedMigration = !!remoteData && remoteData.consistencyButtonsSeeded !== true;
+      if (pending || legacyData || !remoteData || needsConsistencySeedMigration) {
         store.load(initialData || store.get());
         await store.flush();
         store.clearLegacy();

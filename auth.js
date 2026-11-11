@@ -65,11 +65,14 @@
     if (/failed to fetch|networkerror|load failed|supabase/i.test(error.message || '')) return english() ? 'Could not reach the online service. Check your internet connection and try again.' : 'Adeegga online-ka lama xiriiri karo. Hubi internet-ka oo mar kale isku day.';
     return error.message || (english() ? 'Please try again.' : 'Mar kale isku day.');
   }
-  function startSession(result) {
+  function startSession(result, celebrate = false) {
     sessionStorage.removeItem('nolosha-pending-registration-v1');
     if (!result?.token || !result.refreshToken || !result.email || !result.userId) throw new Error(english() ? 'The online service returned an incomplete account session. Please try again.' : 'Adeegga online-ku wuxuu soo celiyey xog session oo dhiman. Mar kale isku day.');
     sessionStorage.setItem('nolosha-session', JSON.stringify({ ...result, startedAt: Date.now() }));
-    location.href = 'dashboard.html';
+    if (celebrate) {
+      form.dispatchEvent(new Event('auth:correct-credentials'));
+      setTimeout(() => { location.href = 'dashboard.html'; }, 1100);
+    } else location.href = 'dashboard.html';
   }
   function showVerification(email) {
     if (!verificationPanel) return;
@@ -104,6 +107,7 @@
     input.type = input.type === 'password' ? 'text' : 'password';
     button.setAttribute('aria-pressed', String(input.type === 'text'));
     button.textContent = english() ? (input.type === 'text' ? 'Hide' : 'Show') : (input.type === 'text' ? 'Qari' : 'Muuji');
+    form.dispatchEvent(new Event('auth:password-visibility'));
   }));
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -122,7 +126,7 @@
         sessionStorage.setItem('nolosha-pending-registration-v1', JSON.stringify({ email, name }));
         showVerification(email); cooldown();
         sayVerification(english() ? 'Supabase accepted the signup request. Check your inbox and spam folder for the verification code.' : 'Supabase wuu aqbalay codsiga diiwaangelinta. Ka eeg inbox-ka iyo spam-ka koodhka xaqiijinta.', 'success');
-      } else startSession(await window.NoloshaCloud.signIn(email, password));
+      } else startSession(await window.NoloshaCloud.signIn(email, password), true);
     } catch (error) {
       if (isRegister && error.status === 429) { sessionStorage.setItem('nolosha-pending-registration-v1', JSON.stringify({ email, name })); showVerification(email); cooldown(error.retryAfter || (emailRateLimited(error) ? 3600 : 60)); sayVerification(errorText(error)); }
       else say(errorText(error));

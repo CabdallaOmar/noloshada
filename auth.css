@@ -124,3 +124,220 @@ body,.auth-layout,.auth-aside,.auth-main{background:#000;background-image:none}
 /* Password button uses its original Show/Hide text, with no icon. */
 .show-password{background-image:none!important;font-size:8px!important;width:auto;height:26px;padding:5px 0!important}
 .show-password::before,.show-password::after{content:none!important}
+
+/* Solid sign-in blue background for login, registration, and verification. */
+body {
+  background: #63a8ff;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .07;
+  background-image:
+    linear-gradient(rgba(165, 195, 238, .12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(165, 195, 238, .12) 1px, transparent 1px);
+  background-size: 66px 66px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 8%, transparent 83%);
+  mask-image: radial-gradient(ellipse at center, #000 8%, transparent 83%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  top: 50%;
+  right: clamp(-200px, 2vw, 34px);
+  width: min(58vw, 640px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background:
+    radial-gradient(ellipse at 34% 30%, rgba(30, 91, 139, .34) 0%, rgba(18, 61, 96, .28) 25%, rgba(8, 32, 53, .2) 48%, rgba(3, 9, 17, .06) 68%, transparent 78%);
+  filter: blur(4px);
+  box-shadow: 0 0 90px rgba(15, 55, 88, .1);
+  pointer-events: none;
+}
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+body::before,
+body::after { display: none; }
+
+/* Keep the exact blue base while a soft light moves across it. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -15%;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  opacity: .38;
+  background-image:
+    radial-gradient(ellipse 42% 48% at 20% 28%, rgba(255, 255, 255, .18), transparent 72%),
+    radial-gradient(ellipse 40% 46% at 78% 66%, rgba(3, 35, 83, .12), transparent 74%),
+    linear-gradient(125deg, transparent 38%, rgba(255, 255, 255, .08) 50%, transparent 62%);
+  background-size: 160% 160%, 150% 150%, 220% 100%;
+  background-position: 0% 0%, 100% 100%, -100% 50%;
+  animation: auth-blue-drift 26s ease-in-out infinite alternate;
+}
+body::after { display: none; }
+@keyframes auth-blue-drift {
+  from { background-position: 0% 0%, 100% 100%, -100% 50%; }
+  to { background-position: 100% 100%, 0% 0%, 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
+
+/* Soft water rings follow the pointer over the blue background. */
+.auth-water-ripple {
+  position: fixed;
+  z-index: 10;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, .12), transparent 48%),
+    radial-gradient(circle, transparent 47%, rgba(255, 255, 255, .52) 48%, rgba(31, 91, 157, .22) 50%, transparent 52%),
+    radial-gradient(circle, transparent 66%, rgba(255, 255, 255, .28) 67%, transparent 69%);
+  filter: blur(1px);
+  animation: auth-water-ripple .9s cubic-bezier(.14, .54, .3, 1) forwards;
+}
+@keyframes auth-water-ripple {
+  0% { opacity: .72; transform: translate(-50%, -50%) scale(.18); }
+  55% { opacity: .42; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-water-ripple { animation: none; display: none; }
+}
+
+/* Keep the wolf attached to the card, with clear eyes that follow the pointer. */
+.auth-main { overflow: visible; }
+.auth-box { position: relative; top: 8px; overflow: visible; }
+.auth-box > .auth-mascot {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 50%;
+  width: 108px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -83%);
+  pointer-events: none;
+}
+.auth-mascot svg {
+  display: block;
+  width: 102px;
+  height: 86px;
+  overflow: visible;
+  filter: drop-shadow(0 8px 10px rgba(18, 42, 69, .16));
+  animation: wolf-float 3.8s ease-in-out infinite;
+}
+.wolf-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wolf-blink 5.2s ease-in-out infinite;
+}
+.wolf-pupil { transition: transform .08s ease-out; }
+.wolf-paw {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .48s cubic-bezier(.2, .8, .25, 1.15);
+}
+.wolf-paw--left,
+.wolf-paw--right { transform: translateY(18px); }
+.auth-mascot.is-covering .wolf-paw--left,
+.auth-mascot.is-covering .wolf-paw--right { transform: translateY(0); }
+.mobile-brand { display: flex; justify-content: center; }
+.mobile-brand .brand { width: 100%; justify-content: center; }
+.auth-box .mobile-brand { margin-top: 8px; }
+@keyframes wolf-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes wolf-blink {
+  0%, 91%, 95%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(.08); }
+}
+@media (max-width: 420px) {
+  .auth-box > .auth-mascot { width: 100px; height: 76px; }
+  .auth-mascot svg { width: 94px; height: 80px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-mascot svg, .wolf-eyes { animation: none; }
+  .wolf-paw, .wolf-pupil { transition: none; }
+}
+.auth-mascot::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  right: -17px;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(4px) scale(.88);
+  padding: 4px 8px;
+  border: 1px solid #d9e1ed;
+  border-radius: 12px;
+  background: #fff;
+  color: #26334a;
+  font: 700 10px/1.2 var(--font);
+  box-shadow: 0 4px 12px #172a4024;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.auth-mascot::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: -8px;
+  z-index: 2;
+  width: 7px;
+  height: 7px;
+  opacity: 0;
+  transform: rotate(45deg);
+  border-right: 1px solid #d9e1ed;
+  border-bottom: 1px solid #d9e1ed;
+  background: #fff;
+}
+.auth-mascot.is-correct::after {
+  content: "Correct 😎";
+  color: #16833b;
+  border-color: #a9ddb8;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.auth-mascot.is-correct::before {
+  opacity: 1;
+  border-color: #a9ddb8;
+}
+.auth-mascot.is-correct svg {
+  transform-origin: 50% 75%;
+  animation: wolf-correct .95s cubic-bezier(.28,.7,.3,1.2);
+}
+.auth-mascot.is-shaking svg {
+  transform-origin: 50% 75%;
+  animation: wolf-no .72s ease-in-out;
+}
+@keyframes wolf-no {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  15%, 45%, 75% { transform: translate(-5px, -1px) rotate(-7deg); }
+  30%, 60%, 90% { transform: translate(5px, -1px) rotate(7deg); }
+}
+@keyframes wolf-correct {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  22% { transform: translateY(-10px) rotate(-4deg); }
+  44% { transform: translateY(0) rotate(3deg); }
+  66% { transform: translateY(-6px) rotate(-2deg); }
+  84% { transform: translateY(0) rotate(1deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-mascot::after { transition: none; }
+  .auth-mascot.is-correct svg, .auth-mascot.is-shaking svg { animation: none; }
+}
